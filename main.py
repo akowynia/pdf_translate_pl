@@ -12,7 +12,7 @@ llm = llm_operations()
 # print(test)
 
 pdf = pdf_to_text()
-text = pdf.extract_text_from_pdf("test/django3byexample_2.pdf")
+text = pdf.extract_text_from_pdf("test/django3byexample.pdf")
 translated_text = []
 counter = 0
 for page in text:
@@ -21,14 +21,16 @@ for page in text:
     chunks = split_text_into_chunks(page)
     
     for chunk in chunks:
+        
         translated = llm.generate(chunk, "Przetłumacz poprawnie gramatycznie na język polski i zachowaj formatowanie. Nie dodawaj żadnych dodatkowych znaków interpunkcyjnych.")
         translated_page += translated
     translated_text.append(translated_page)
+    print(translated_page)
     counter += 1
 
 
 sv_pdf = save_pdf()
-sv_pdf.create_pdf("test/django3byexample_translated.pdf", translated_text)
+sv_pdf.create_pdf("test/django3byexample_translated_2.pdf", translated_text)
 
 
 

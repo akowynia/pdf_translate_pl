@@ -11,7 +11,7 @@ class pdf_to_text:
 
         for page in doc:
             page_text = page.get_text()
-            cleaned_text = page_text.replace('\n', ' ')  # Usuwa przełamania linii
-            text.append(cleaned_text)
+            # cleaned_text = page_text.replace('\n', ' ')  # Usuwa przełamania linii
+            text.append(page_text)
             
         return text
