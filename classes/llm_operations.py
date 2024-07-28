@@ -6,6 +6,7 @@ class llm_operations:
         model_path = "models/Meta-Llama-3-8B-Instruct-Q4_K_M.gguf"
         self.llm = Llama(model_path=model_path,n_gpu_layers=-1 ,verbose=False)
 
+
     def generate(self, message, system_message):
         prompt_1 = f"""
         <|begin_of_text|><|start_header_id|>system<|end_header_id|>

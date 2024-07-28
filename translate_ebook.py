@@ -1,76 +1,82 @@
 from classes.llm_operations import *
 from classes.pdf_to_text import *
 from classes.save_pdf import *
-import sqlite3
-import os
+from classes.db_operations import *
 
 
 class translate_ebook:
     def __init__(self) -> None:
         pass
 
-    def createDatabase(self):
-
-        # tworzy folder configs jeśli nie istnieje
-        if not os.path.isdir("configs"):
-            os.makedirs("configs", exist_ok=True)
-            config_path = os.path.abspath("configs")
-
-        # tworzy bazę danych jeśli nie istnieje
-        if not os.path.isfile("translate_book.db"):
-            try:
-                db = sqlite3.connect("translate_book.db")
-                cursor = db.cursor()
-
-                # wykonuje kwerendę tworzącą tabele
-                cursor.execute('''
-        CREATE TABLE BookInformation(
-            id integer,
-            bookName varchar,
-            page varchar,
-            originalPage varchar,
-            translatedPage varchar,
-            PRIMARY KEY(id)
-
-            );
-
-                ''')
-
-                db.commit()
-                # cursor.execute(sql,data)
-                db.close()
-            except:
-                print("Błąd tworzenia bazy danych")
-
-    def split_text_into_chunks(self, text, chunk_size=150):
+    def split_text_into_chunks(self, text, chunk_size=100):
         words = text.split()
         chunks = [' '.join(words[i:i+chunk_size])
                   for i in range(0, len(words), chunk_size)]
         return chunks
 
-    def start(self):
-        self.createDatabase()
-
+    def start(self, path):
+        db = db_operations()
         llm = llm_operations()
         pdf = pdf_to_text()
 
-        text = pdf.extract_text_from_pdf("test/django3byexample.pdf")
-        translated_text = []
-        counter = 0
-        for page in text:
-            print(f"Translating chunk {counter+1}/{len(text)}")
-            translated_page = ""
-            chunks = self.split_text_into_chunks(page)
+        if db.checkData(path) == False:
 
-            for chunk in chunks:
+            text = pdf.extract_text_from_pdf(path)
+            translated_text = []
+            counter = 0
+            for page in text:
+                print(f"Translating chunk {counter+1}/{len(text)}")
+                translated_page = ""
+                chunks = self.split_text_into_chunks(page)
+                print('-----------------')
+                print(chunks)
+                print('-----------------')
+                print(len(chunks))
+                for chunk in chunks:
 
-                translated = llm.generate(
-                    chunk, "Przetłumacz poprawnie gramatycznie na język polski i zachowaj formatowanie. Nie dodawaj żadnych dodatkowych znaków interpunkcyjnych.")
-                translated_page += translated
-            translated_text.append(translated_page)
-            print(translated_page)
-            counter += 1
+                    translated = llm.generate(
+                        chunk, "Przetłumacz poprawnie gramatycznie na język polski i zachowaj formatowanie. Nie dodawaj żadnych dodatkowych znaków interpunkcyjnych.")
+                    translated_page += translated
+                translated_text.append(translated_page)
 
-        sv_pdf = save_pdf()
-        sv_pdf.create_pdf(
-            "test/django3byexample_translated_2.pdf", translated_text)
+                db.insertData(path, counter, page, translated_page)
+
+                print(translated_page)
+                counter += 1
+
+            sv_pdf = save_pdf()
+            sv_pdf.create_pdf(
+                path[0:-4]+"_translated.pdf", translated_text)
+        else:
+            print("Book already exists in database")
+            db.last_page(path)
+            print("Last page: ", db.last_page(path))
+            text = pdf.extract_text_from_pdf(path)
+            counter = 0
+            last_page = int(db.last_page(path)[0][0])
+
+            for page in text:
+                if counter > last_page:
+                    print(f"Translating chunk {counter+1}/{len(text)}")
+                    translated_page = ""
+                    chunks = self.split_text_into_chunks(page)
+
+                    for chunk in chunks:
+
+                        translated = llm.generate(
+                            chunk, "Przetłumacz poprawnie gramatycznie na język polski i zachowaj formatowanie. Nie dodawaj żadnych dodatkowych znaków interpunkcyjnych.")
+                        translated_page += translated
+                    db.insertData(path, counter, page, translated_page)
+                    print(translated_page)
+                counter += 1
+            translated = db.selectData(path)
+            text = []
+            for t in translated:
+                text.append(t[0])
+            sv_pdf = save_pdf()
+            sv_pdf.create_pdf(path[0:-4]+"_translated.pdf", text)
+
+
+path = "test/django3byexample_2.pdf"
+te = translate_ebook()
+te.start(path)
