@@ -60,7 +60,7 @@ class translate_ebook:
         for page in text:
             print(f"Translating chunk {counter+1}/{len(text)}")
             translated_page = ""
-            chunks = split_text_into_chunks(page)
+            chunks = self.split_text_into_chunks(page)
 
             for chunk in chunks:
 
