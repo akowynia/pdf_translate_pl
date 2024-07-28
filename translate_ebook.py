@@ -8,7 +8,7 @@ class translate_ebook:
     def __init__(self) -> None:
         pass
 
-    def split_text_into_chunks(self, text, chunk_size=150):
+    def split_text_into_chunks(self, text, chunk_size=120):
         """
         Splits the given text into chunks of specified size.
 
@@ -49,7 +49,7 @@ class translate_ebook:
                 for chunk in chunks:
                     # Translate each chunk using the llm_operations class
                     translated = llm.generate(
-                        chunk, "Przetłumacz poprawnie gramatycznie na język polski i zachowaj formatowanie. Nie dodawaj żadnych dodatkowych znaków interpunkcyjnych.")
+                        chunk, "Przetłumacz poprawnie gramatycznie na język polski i zachowaj formatowanie. Nie dodawaj żadnych dodatkowych znaków interpunkcyjnych. Dostajesz fragmenty ksiąki, zachowaj pierwotne formatowanie. Tylko tłumacz, nie dodawaj niczego.")
                     translated_page += translated
                 translated_text.append(translated_page)
 
