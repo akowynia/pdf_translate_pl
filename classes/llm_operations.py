@@ -3,7 +3,8 @@ import logging
 
 class llm_operations:
     def __init__(self) -> None:
-        model_path = "models/Meta-Llama-3-8B-Instruct-Q4_K_M.gguf"
+        #model_path = "models/Meta-Llama-3-8B-Instruct-Q4_K_M.gguf"
+        model_path = "models/Meta-Llama-3.1-8B-Instruct-Q4_K_M-take2.gguf"
         self.llm = Llama(model_path=model_path,n_gpu_layers=-1 ,verbose=False)
 
 
@@ -17,7 +18,7 @@ class llm_operations:
         """
         output = self.llm(
             prompt_1,
-            max_tokens=200,
+            max_tokens=2048,
             temperature=0.8,
             top_p=0.95
         )
