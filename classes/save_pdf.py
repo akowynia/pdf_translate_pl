@@ -1,13 +1,27 @@
 import fitz  # PyMuPDF
 import pymupdf_fonts
+import pymupdf_fonts
+
+# This is the implementation of the save_pdf class.
+# It provides methods for creating and saving a PDF document.
+
+import fitz  # PyMuPDF
+
 class save_pdf:
     def __init__(self) -> None:
         pass
+
     def create_pdf(self, output_path, pages):
+        """
+        Creates a PDF document with the given pages and saves it to the specified output path.
+
+        Args:
+            output_path (str): The path where the PDF document will be saved.
+            pages (list): A list of strings representing the content of each page.
+        """
         doc = fitz.open()
 
-        font = fitz.Font("figo")  # "figo" to kod dla FiraGO Regular z pymupdf_fonts
-        
+        font = fitz.Font("figo")  # "figo" is the code for FiraGO Regular from pymupdf_fonts
 
         for page_book in pages:
             page = doc.new_page()
@@ -18,6 +32,16 @@ class save_pdf:
         doc.save(output_path)
 
     def split_text_into_lines(self, text, max_line_length):
+        """
+        Splits the given text into lines based on the maximum line length.
+
+        Args:
+            text (str): The text to be split into lines.
+            max_line_length (int): The maximum length of each line.
+
+        Returns:
+            list: A list of strings representing each line of the text.
+        """
         words = text.split()
         lines = []
         current_line = []

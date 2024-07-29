@@ -1,0 +1,4 @@
+fitz==0.0.1.dev2
+pymupdf_fonts==1.0.5
+Requests==2.32.3
+tqdm==4.66.4

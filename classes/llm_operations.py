@@ -3,12 +3,33 @@ import logging
 
 class llm_operations:
     def __init__(self) -> None:
+        """
+        Initializes the llm_operations class.
+
+        This class is responsible for generating responses using the Llama model.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
         model_path = "models/Meta-Llama-3-8B-Instruct-Q4_K_M.gguf"
-        #model_path = "models/Meta-Llama-3.1-8B-Instruct-Q4_K_M-take2.gguf"
+       
         self.llm = Llama(model_path=model_path,n_gpu_layers=-1 ,verbose=False)
 
 
     def generate(self, message, system_message):
+        """
+        Generates a response using the Llama model.
+
+        Args:
+            message (str): The user's message.
+            system_message (str): The system's message.
+
+        Returns:
+            str: The generated response.
+        """
         prompt_1 = f"""
         <|begin_of_text|><|start_header_id|>system<|end_header_id|>
 
