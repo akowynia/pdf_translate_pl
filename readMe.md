@@ -65,8 +65,12 @@ Zależna jest od sprzętu na którym jest uruchomiona, najlepiej jest sprawdzić
 ``https://lmstudio.ai`` i dostosować ustawienia w pliku ``llm_operations.py``
 
 Wymagania takie jak przy LM studio:
+
 Komputer Apple Silicon Mac (M1/M2/M3) z systemem macOS 13.6 lub nowszym
+
 Komputer z systemem Windows / Linux z procesorem obsługującym AVX2 (zazwyczaj nowsze komputery)
+
 Zalecane jest 16GB+ pamięci RAM. Dla komputerów PC zalecane jest 6GB+ pamięci VRAM
+
 Obsługiwane są karty graficzne NVIDIA/AMD
 
