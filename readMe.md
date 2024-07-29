@@ -1,4 +1,4 @@
-# PDF Translate
+# PDF Translate PL
 
 Projekt `PDF Translate` umożliwia tłumaczenie tekstu e-booków w formacie PDF przy użyciu modelu Llama-3-8B-Instruct.
 
