@@ -30,8 +30,8 @@ By zmienić model na inny należy edytować następujące pliki:
 1. Sklonuj repozytorium:
 
     ```bash
-    git clone <URL do Twojego repozytorium>
-    cd <nazwa katalogu>
+    git clone https://github.com/akowynia/pdf_translate_pl.git
+    cd pdf_translate_pl
     ```
 
 2. Zainstaluj niezbędne biblioteki przy uzyciu:
