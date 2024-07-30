@@ -1,6 +1,7 @@
 from llama_cpp import Llama
 import logging
 
+
 class llm_operations:
     def __init__(self) -> None:
         """
@@ -15,9 +16,9 @@ class llm_operations:
             None
         """
         model_path = "models/Meta-Llama-3-8B-Instruct-Q4_K_M.gguf"
-       
-        self.llm = Llama(model_path=model_path,n_gpu_layers=-1 ,verbose=False)
 
+        self.llm = Llama(model_path=model_path, n_gpu_layers=-
+                         1, verbose=False, n_ctx=8192)
 
     def generate(self, message, system_message):
         """
@@ -39,7 +40,7 @@ class llm_operations:
         """
         output = self.llm(
             prompt_1,
-            max_tokens=512,
+            max_tokens=4096,
             temperature=0.8,
             top_p=0.95
         )

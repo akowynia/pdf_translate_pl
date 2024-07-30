@@ -43,7 +43,7 @@ class translate_ebook:
 
 
     
-    def split_text_into_chunks(self, text, chunk_size=120):
+    def split_text_into_chunks(self, text, chunk_size=2000):
         """
         Splits the given text into chunks of specified size.
 
