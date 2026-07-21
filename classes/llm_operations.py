@@ -1,28 +1,25 @@
-from llama_cpp import Llama
-import logging
+import ollama
+import json
 
 
 class llm_operations:
-    def __init__(self) -> None:
+    def __init__(self, model_name: str = "llama3") -> None:
         """
         Initializes the llm_operations class.
 
-        This class is responsible for generating responses using the Llama model.
+        This class is responsible for generating responses using an Ollama model.
 
         Args:
-            None
+            model_name (str): The name of the model in Ollama (e.g. 'llama3', 'mistral').
 
         Returns:
             None
         """
-        model_path = "models/Meta-Llama-3-8B-Instruct-Q4_K_M.gguf"
+        self.model_name = model_name
 
-        self.llm = Llama(model_path=model_path, n_gpu_layers=-
-                         1, verbose=False, n_ctx=8192)
-
-    def generate(self, message, system_message):
+    def generate(self, message: str, system_message: str) -> str:
         """
-        Generates a response using the Llama model.
+        Generates a response using the Ollama model.
 
         Args:
             message (str): The user's message.
@@ -31,19 +28,77 @@ class llm_operations:
         Returns:
             str: The generated response.
         """
-        prompt_1 = f"""
-        <|begin_of_text|><|start_header_id|>system<|end_header_id|>
+        response = ollama.chat(
+            model=self.model_name,
+            messages=[
+                {
+                    'role': 'system',
+                    'content': system_message,
+                },
+                {
+                    'role': 'user',
+                    'content': message,
+                },
+            ],
+            options={
+                'temperature': 0.8,
+                'top_p': 0.95,
+            }
+        )
+        return response['message']['content']
 
-        {system_message}<|eot_id|><|start_header_id|>user<|end_header_id|>
-
-        {message}<|eot_id|><|start_header_id|>assistant<|end_header_id|>
+    def generate_batch(self, payload_dict: dict, system_message: str) -> dict:
         """
-        output = self.llm(
-            prompt_1,
-            max_tokens=4096,
-            temperature=0.8,
-            top_p=0.95
+        Translates a dictionary of text blocks in a single JSON call to Ollama.
+
+        Args:
+            payload_dict (dict): Dictionary mapping string IDs to text snippets.
+            system_message (str): System prompt.
+
+        Returns:
+            dict: Dictionary mapping the same string IDs to translated text snippets.
+        """
+        if not payload_dict:
+            return {}
+
+        user_prompt = (
+            "Dostajesz słownik JSON z fragmentami tekstu do przetłumaczenia z angielskiego na język polski.\n"
+            "Przetłumacz wartość każdego klucza na język polski. Zachowaj numery, punkty oraz układ.\n"
+            "Tylko przetłumacz teksty. Zwróć wynik jako prawidłowy obiekt JSON o takich samych kluczach.\n\n"
+            f"Wejście JSON:\n{json.dumps(payload_dict, ensure_ascii=False)}"
         )
 
-        response_text = output['choices'][0]['text']
-        return response_text
+        try:
+            response = ollama.chat(
+                model=self.model_name,
+                messages=[
+                    {
+                        'role': 'system',
+                        'content': system_message,
+                    },
+                    {
+                        'role': 'user',
+                        'content': user_prompt,
+                    },
+                ],
+                format='json',
+                options={
+                    'temperature': 0.2,
+                }
+            )
+            content = response['message']['content']
+            parsed = json.loads(content)
+            if isinstance(parsed, dict):
+                return parsed
+        except Exception as e:
+            print(f"Batch LLM translation error ({e}), falling back to single item calls...")
+
+        result = {}
+        for key, text in payload_dict.items():
+            if text and text.strip():
+                result[key] = self.generate(text, system_message)
+            else:
+                result[key] = ""
+        return result
+
+

@@ -1,142 +1,144 @@
-from classes.llm_operations import *
-from classes.pdf_to_text import *
-from classes.save_pdf import *
-from classes.db_operations import *
 import sys
-import requests
-from tqdm import tqdm
+import os
+from classes.llm_operations import llm_operations
+from classes.pdf_to_text import pdf_to_text
+from classes.save_pdf import save_pdf
+from classes.db_operations import db_operations
+
 
 class translate_ebook:
-    def __init__(self) -> None:
-        # download model from huggingface
-
-        if not os.path.isdir("models"):
-            os.makedirs("models", exist_ok=True)
-            print("Created models folder")
-        #check and download model llama instruct 3 8b 
-        if not os.path.isfile("models/Meta-Llama-3-8B-Instruct-Q4_K_M.gguf"):
-            url = 'https://huggingface.co/lmstudio-community/Meta-Llama-3-8B-Instruct-GGUF/resolve/main/Meta-Llama-3-8B-Instruct-Q4_K_M.gguf?download=true'
-
-            try:
-                response = requests.get(url, stream=True)
-                response.raise_for_status()  # Sprawdza, czy żądanie zakończyło się sukcesem
-
-                total_size = int(response.headers.get('content-length', 0))
-                block_size = 1024  # 1 Kilobajt
-
-                with open('models/Meta-Llama-3-8B-Instruct-Q4_K_M.gguf', 'wb') as file, tqdm(
-                    desc='Pobieranie modelu Llama-3-8B-Instruct',
-                    total=total_size,
-                    unit='iB',
-                    unit_scale=True,
-                    unit_divisor=1024,
-                ) as bar:
-                    for data in response.iter_content(block_size):
-                        bar.update(len(data))
-                        file.write(data)
-
-                print("Downloading sucessfully.")
-            except requests.exceptions.RequestException as e:
-                print(f"Error with downloaded model: {e}")
-        pass
-
-
-
-    
-    def split_text_into_chunks(self, text, chunk_size=2000):
+    def __init__(self, model_name: str = "llama3") -> None:
         """
-        Splits the given text into chunks of specified size.
+        Initializes the ebook translator using Ollama and layout preservation.
 
         Args:
-            text (str): The text to be split into chunks.
-            chunk_size (int, optional): The size of each chunk. Defaults to 100.
-
-        Returns:
-            list: A list of text chunks.
+            model_name (str): Name of the Ollama model to use (default: "llama3").
         """
-        words = text.split()
-        chunks = [' '.join(words[i:i+chunk_size])
-                  for i in range(0, len(words), chunk_size)]
-        return chunks
+        self.model_name = model_name
 
-
-    #start translation
     def start(self, path):
         """
-        Starts the translation process for the given ebook.
+        Starts the translation process for the given ebook while preserving layout.
 
         Args:
-            path (str): The path of the ebook file.
+            path (str): The path of the ebook PDF file.
         """
+        if not os.path.exists(path):
+            print(f"Error: File '{path}' does not exist.")
+            return
+
         db = db_operations()
-        llm = llm_operations()
+        llm = llm_operations(model_name=self.model_name)
         pdf = pdf_to_text()
 
+        system_prompt = (
+            "Przetłumacz poprawnie gramatycznie na język polski i zachowaj formatowanie. "
+            "Nie dodawaj żadnych dodatkowych znaków interpunkcyjnych ani komentarzy. "
+            "Dostajesz fragmenty książki, zachowaj pierwotne formatowanie. Tylko tłumacz, nie dodawaj niczego."
+        )
+
+        all_translated_pages_blocks = []
+
         # If the ebook is not already in the database
-        if db.checkData(path) == False:
-            text = pdf.extract_text_from_pdf(path)
-            translated_text = []
-            counter = 0
-            for page in text:
+        if not db.checkData(path):
+            pages_blocks = pdf.extract_blocks_from_pdf(path)
+            total_pages = len(pages_blocks)
 
-                print(f"Translating page {counter+1}/{len(text)}")
-                translated_page = ""
-                chunks = self.split_text_into_chunks(page)
+            for page_idx, page_blocks in enumerate(pages_blocks):
+                print(f"Translating page {page_idx + 1}/{total_pages} ({len(page_blocks)} text blocks)")
+                translated_page_blocks = []
+                chunk_size = 20
 
-                for chunk in chunks:
-                    # Translate each chunk using the llm_operations class
-                    translated = llm.generate(
-                        chunk, "Przetłumacz poprawnie gramatycznie na język polski i zachowaj formatowanie. Nie dodawaj żadnych dodatkowych znaków interpunkcyjnych. Dostajesz fragmenty ksiąki, zachowaj pierwotne formatowanie. Tylko tłumacz, nie dodawaj niczego.")
-                    translated_page += translated
-                translated_text.append(translated_page)
+                for i in range(0, len(page_blocks), chunk_size):
+                    batch_blocks = page_blocks[i:i + chunk_size]
+                    payload = {}
+                    for b_idx, blk in enumerate(batch_blocks):
+                        txt = blk['text'].strip()
+                        if txt:
+                            payload[str(b_idx)] = txt
 
-                # Insert the original and translated text into the database
-                db.insertData(path, counter, page, translated_page)
+                    if payload:
+                        translations = llm.generate_batch(payload, system_prompt)
+                    else:
+                        translations = {}
 
-                print(translated_page)
-                counter += 1
+                    for b_idx, blk in enumerate(batch_blocks):
+                        orig_text = blk['text'].strip()
+                        str_key = str(b_idx)
+                        translated_text = translations.get(str_key, orig_text if not orig_text else "")
 
-            sv_pdf = save_pdf()
-            # Create a translated PDF file using the save_pdf class
-            sv_pdf.create_pdf(
-                path[0:-4]+"_translated.pdf", translated_text)
+                        translated_page_blocks.append({
+                            'bbox': blk['bbox'],
+                            'original_text': orig_text,
+                            'translated_text': str(translated_text),
+                            'block_no': blk['block_no']
+                        })
+
+                db.insertData(path, page_idx, page_blocks, translated_page_blocks)
+                all_translated_pages_blocks.append(translated_page_blocks)
+
         else:
-            print("Book already exists in database")
-            db.last_page(path)
-            print("Last page: ", db.last_page(path))
-            text = pdf.extract_text_from_pdf(path)
-            counter = 0
-            last_page = int(db.last_page(path)[0][0])
+            print("Book already exists in database. Resuming/loading from DB...")
+            last_page_data = db.last_page(path)
+            last_page_idx = int(last_page_data[0][0]) if last_page_data else -1
 
-            for page in text:
-                if counter > last_page:
-                    print(f"Translating chunk {counter+1}/{len(text)}")
-                    translated_page = ""
-                    chunks = self.split_text_into_chunks(page)
+            pages_blocks = pdf.extract_blocks_from_pdf(path)
+            total_pages = len(pages_blocks)
 
-                    for chunk in chunks:
-                        # Translate each chunk using the llm_operations class
-                        translated = llm.generate(
-                            chunk, "Przetłumacz poprawnie gramatycznie na język polski i zachowaj formatowanie. Nie dodawaj żadnych dodatkowych znaków interpunkcyjnych. Dostajesz fragmenty ksiąki, zachowaj pierwotne formatowanie. Tylko tłumacz, nie dodawaj niczego.")
-                        translated_page += translated
-                    db.insertData(path, counter, page, translated_page)
-                    print(translated_page)
-                counter += 1
-            translated = db.selectData(path)
-            text = []
-            for t in translated:
-                text.append(t[0])
-            sv_pdf = save_pdf()
-            # Create a translated PDF file using the save_pdf class
-            sv_pdf.create_pdf(path[0:-4]+"_translated.pdf", text)
+            for page_idx, page_blocks in enumerate(pages_blocks):
+                if page_idx <= last_page_idx:
+                    continue
 
+                print(f"Translating page {page_idx + 1}/{total_pages} ({len(page_blocks)} text blocks)")
+                translated_page_blocks = []
+                chunk_size = 20
+
+                for i in range(0, len(page_blocks), chunk_size):
+                    batch_blocks = page_blocks[i:i + chunk_size]
+                    payload = {}
+                    for b_idx, blk in enumerate(batch_blocks):
+                        txt = blk['text'].strip()
+                        if txt:
+                            payload[str(b_idx)] = txt
+
+                    if payload:
+                        translations = llm.generate_batch(payload, system_prompt)
+                    else:
+                        translations = {}
+
+                    for b_idx, blk in enumerate(batch_blocks):
+                        orig_text = blk['text'].strip()
+                        str_key = str(b_idx)
+                        translated_text = translations.get(str_key, orig_text if not orig_text else "")
+
+                        translated_page_blocks.append({
+                            'bbox': blk['bbox'],
+                            'original_text': orig_text,
+                            'translated_text': str(translated_text),
+                            'block_no': blk['block_no']
+                        })
+
+                db.insertData(path, page_idx, page_blocks, translated_page_blocks)
+
+            all_translated_pages_blocks = db.selectBlocksData(path)
+
+
+        if path.lower().endswith(".pdf"):
+            output_pdf = path[:-4] + "_translated.pdf"
+        else:
+            output_pdf = path + "_translated.pdf"
+
+        sv_pdf = save_pdf()
+        sv_pdf.create_pdf_layout_preserved(path, output_pdf, all_translated_pages_blocks)
+        print(f"Successfully generated layout-preserved translated PDF: {output_pdf}")
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python3 translate_ebook.py <path pdf>")
+    if len(sys.argv) < 2 or len(sys.argv) > 3:
+        print("Usage: python3 translate_ebook.py <path pdf> [model_name]")
         sys.exit(1)
     else:
         folder = sys.argv[1]
-        te = translate_ebook()
+        model = sys.argv[2] if len(sys.argv) == 3 else "llama3"
+        te = translate_ebook(model_name=model)
         te.start(folder)

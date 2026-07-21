@@ -1,5 +1,6 @@
 import sqlite3
 import os
+import json
 
 
 class db_operations:
@@ -11,44 +12,37 @@ class db_operations:
         """
         Creates the database and necessary tables if they don't exist.
         """
-        # Create 'configs' folder if it doesn't exist
         if not os.path.isdir("configs"):
             os.makedirs("configs", exist_ok=True)
-            config_path = os.path.abspath("configs")
 
-        # Create database if it doesn't exist
         if not os.path.isfile("configs/translate_book.db"):
             try:
                 db = sqlite3.connect("configs/translate_book.db")
                 cursor = db.cursor()
-
-                # Execute query to create tables
                 cursor.execute('''
                     CREATE TABLE BookInformation(
                         id integer,
                         bookName varchar(1000),
                         page int,
-                        originalPage varchar(9000),
-                        translatedPage varchar(9000),
+                        originalPage TEXT,
+                        translatedPage TEXT,
                         PRIMARY KEY(id)
                     );
                 ''')
-
                 db.commit()
                 db.close()
-            except:
-                print("Error with creating database")
+            except Exception as e:
+                print(f"Error with creating database: {e}")
 
     def insertData(self, bookName, page, originalPage, translatedPage):
         """
         Inserts data into the BookInformation table.
-
-        Args:
-            bookName (str): The name of the book.
-            page (int): The page number.
-            originalPage (str): The original page content.
-            translatedPage (str): The translated page content.
         """
+        if isinstance(originalPage, (list, dict)):
+            originalPage = json.dumps(originalPage, ensure_ascii=False)
+        if isinstance(translatedPage, (list, dict)):
+            translatedPage = json.dumps(translatedPage, ensure_ascii=False)
+
         try:
             db = sqlite3.connect("configs/translate_book.db")
             cursor = db.cursor()
@@ -57,18 +51,12 @@ class db_operations:
                 (bookName, page, originalPage, translatedPage))
             db.commit()
             db.close()
-        except:
-            print("Error with inserting data")
+        except Exception as e:
+            print(f"Error with inserting data: {e}")
 
     def selectData(self, bookName):
         """
         Retrieves translated pages from the BookInformation table for a given book name.
-
-        Args:
-            bookName (str): The name of the book.
-
-        Returns:
-            list: A list of translated pages.
         """
         try:
             db = sqlite3.connect("configs/translate_book.db")
@@ -77,8 +65,38 @@ class db_operations:
             data = cursor.fetchall()
             db.close()
             return data
-        except:
-            print("Error with selecting data")
+        except Exception as e:
+            print(f"Error with selecting data: {e}")
+            return []
+
+    def selectBlocksData(self, bookName):
+        """
+        Retrieves translated blocks from the BookInformation table for a given book name.
+        Parses JSON strings back into Python objects.
+        """
+        try:
+            db = sqlite3.connect("configs/translate_book.db")
+            cursor = db.cursor()
+            cursor.execute("SELECT translatedPage FROM BookInformation WHERE bookName = ? ORDER BY page", (bookName,))
+            data = cursor.fetchall()
+            db.close()
+
+            result = []
+            for row in data:
+                val = row[0]
+                if val:
+                    try:
+                        parsed = json.loads(val)
+                        result.append(parsed)
+                    except Exception:
+                        result.append(val)
+                else:
+                    result.append([])
+            return result
+        except Exception as e:
+            print(f"Error with selecting blocks data: {e}")
+            return []
+
 
     def checkData(self, bookName):
         """
@@ -122,6 +140,25 @@ class db_operations:
             return data
         except:
             print("Error with checking last page")
+
+    def list_books(self):
+        """
+        Retrieves all unique book names stored in the BookInformation table.
+
+        Returns:
+            list: A list of unique book names.
+        """
+        try:
+            db = sqlite3.connect("configs/translate_book.db")
+            cursor = db.cursor()
+            cursor.execute("SELECT DISTINCT bookName FROM BookInformation")
+            data = [row[0] for row in cursor.fetchall()]
+            db.close()
+            return data
+        except Exception:
+            print("Error with listing books")
+            return []
+
 
 
 

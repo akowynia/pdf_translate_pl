@@ -1,76 +1,67 @@
 # PDF Translate PL
 
-Projekt `PDF Translate` umożliwia tłumaczenie tekstu e-booków w formacie PDF przy użyciu modelu Llama-3-8B-Instruct.
+Projekt `PDF Translate` umożliwia tłumaczenie tekstu e-booków w formacie PDF przy użyciu modeli LLM uruchomionych w serwisie **Ollama** (domyślnie `llama3`).
 
-Uwaga! Projekt tworzy plik z przetłumaczonym samym tekstem(wszystkie grafiki/niestandardowy układ nie jest przerabiany), wszelkie formatowanie tekstu w porównaniu do oryginalnego pliku może nie zostać zachowane, tak samo stosowanie nazw własnych i charakterystycznych dla danego pisarza i zależne jest od tego czy model Meta LLama zna dzieła danego autora.
+> [!WARNING]
+> **Ostrzeżenie dotyczące tłumaczenia i ograniczeń modeli:**
+> - **Układ i formatowanie:** Precyzyjne zachowanie struktury i formatowania dokumentu PDF jest trudnym zadaniem. Projekt przetwarza i tłumaczy sam tekst – grafiki, niestandardowy układ oraz zaawansowane formatowanie z oryginalnego pliku PDF nie są odtwarzane.
+> - **Dokładność i spójność:** Tłumaczenie generowane przez modele LLM może nie być w pełni dokładne. Ze względu na ograniczenia modeli (np. brak pełnego kontekstu całej książki, limity pamięci/okna kontekstowego):
+>   - Model może nie znać oficjalnych polskich tłumaczeń specyficznych terminów, nazw własnych, nazwisk czy imion postaci z danej książki.
+>   - Przekład nazewnictwa oraz stylu autora może być niespójny pomiędzy poszczególnymi fragmentami tekstu.
 
 
 ## Wymagania
 
-- Python 3.6 lub nowszy
-- `requests` (można zainstalować za pomocą `pip install requests`)
-- `tqdm` (można zainstalować za pomocą `pip install tqdm`)
-- `llama-cpp-python` instalacja jak i wsparcie : https://python.langchain.com/v0.2/docs/integrations/llms/llamacpp/
+- Python 3.13 lub nowszy
+- Uruchomiona aplikacja/serwer **Ollama** (do pobrania z [ollama.com](https://ollama.com))
+- Pobrany model w Ollama (np. `ollama pull llama3`)
 
+## Wykorzystanie modeli Ollama
 
-## Wykorzystany model
-Model wykorzystany w projekcie pochodzi z huggingface dostępnego pod adresem:
+Domyślnym modelem używanym przez aplikację jest `llama3`. Możesz pobrać go wykonując w terminalu polecenie:
+```bash
+ollama pull llama3
 ```
-https://huggingface.co/lmstudio-community/Meta-Llama-3-8B-Instruct-GGUF
+
+Możesz także użyć dowolnego innego modelu dostępnego w Ollama (np. `mistral`, `gemma2`, `llama3:8b`, `qwen2.5`):
+```bash
+ollama pull mistral
 ```
-Dostępny też jest w LM studio.
-
-By zmienić model na inny należy edytować następujące pliki:
-
-``translate_ebook.py`` linię 18 gdzie jest adres do pobrania modelu, linię 27 gdzie jest nazwa modelu.
-
-``classes/llm_operations.py`` linię 17 gdzie jest ścieżka do modelu.
 
 ## Instalacja
 
 1. Sklonuj repozytorium:
-
     ```bash
     git clone https://github.com/akowynia/pdf_translate_pl.git
     cd pdf_translate_pl
     ```
 
-2. Zainstaluj niezbędne biblioteki przy uzyciu:
-    ```
+2. Zainstaluj niezbędne biblioteki Python:
+    ```bash
     pip install -r requirements.txt
     ```
 
 ## Użycie
 
-Po skonfigurowaniu środowiska, możesz uruchomić skrypt `translate_ebook.py`, aby przetłumaczyć e-booka:
+Po upewnieniu się, że usługa Ollama działa w tle, możesz uruchomić skrypt `translate_ebook.py`:
 
-będąc w folderze wywołujesz za pomocą polecenia:
+```bash
+python3 translate_ebook.py <sciezka_do_pdf> [nazwa_modelu]
 ```
-python3 translate_ebook.py <sciezka pliku>
-```
-Przy pierwszym uruchomieniu następuje pobranie modelu llama oraz utworzenie bazy danych w folderze configs.
-Przetłumaczony plik jest zapisywany w tym samym folderze co pierwotny plik z dodaną nazwą _translated.pdf
-W przypadku przerwania tłumaczenia, ponowne uruchomienie z tą samą ścieżką pliku kontynuuje dalsze tłumaczenie.
 
-## Zmiana języka docelowego tłumaczenia.
-Domyślnym językiem docelowym jest język polski, jeśli jest potrzeba tłumaczenia na inny język należy zmienić w pliku:
-``translate_ebook.py``
-następujące linie 88 i 119 :
-```
-translated = llm.generate(chunk, "Przetłumacz poprawnie gramatycznie na język polski i zachowaj formatowanie. Nie dodawaj żadnych dodatkowych znaków interpunkcyjnych. Dostajesz fragmenty ksiąki, zachowaj pierwotne formatowanie. Tylko tłumacz, nie dodawaj niczego.")
-```              
+Przykłady:
+- Użycie domyślnego modelu `llama3`:
+    ```bash
+    python3 translate_ebook.py ksiazka.pdf
+    ```
+- Użycie innego modelu, np. `mistral`:
+    ```bash
+    python3 translate_ebook.py ksiazka.pdf mistral
+    ```
 
-## Wydajność
-Zależna jest od sprzętu na którym jest uruchomiona, najlepiej jest sprawdzić ustawienia w LM studio
-``https://lmstudio.ai`` i dostosować ustawienia w pliku ``llm_operations.py``
+Przetłumaczony plik zostanie zapisany w tym samym folderze z dopiskiem `_translated.pdf`.
+W przypadku przerwania tłumaczenia, ponowne uruchomienie z tą samą ścieżką pliku kontynuuje tłumaczenie od ostatnio przetłumaczonej strony.
 
-Wymagania takie jak przy LM studio:
+## Zmiana języka docelowego tłumaczenia
 
-Komputer Apple Silicon Mac (M1/M2/M3) z systemem macOS 13.6 lub nowszym
-
-Komputer z systemem Windows / Linux z procesorem obsługującym AVX2 (zazwyczaj nowsze komputery)
-
-Zalecane jest 16GB+ pamięci RAM. Dla komputerów PC zalecane jest 6GB+ pamięci VRAM
-
-Obsługiwane są karty graficzne NVIDIA/AMD
-
+Domyślnym językiem docelowym jest język polski. Jeśli chcesz zmienić język docelowy, zmień instrukcję (prompt) w pliku `translate_ebook.py` w wywołaniach `llm.generate(...)`.
