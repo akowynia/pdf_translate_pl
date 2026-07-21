@@ -2,6 +2,18 @@
 
 Projekt `PDF Translate` umożliwia tłumaczenie tekstu e-booków w formacie PDF przy użyciu modeli LLM uruchomionych w serwisie **Ollama** (domyślnie `llama3`).
 
+> [!NOTE]
+> **Status projektu & Rozwój:**
+> Projekt został wznowiony i będzie aktywnie rozwijany. 
+> 
+> Warto pamiętać, że **automatyczne tłumaczenie książek nie jest prostym zadaniem**. Przekład dzieł literackich lub obszernych opracowań to nie tylko prosta zamiana słów, ale ciągłe zmaganie się z licznymi wyzwaniami technicznymi i językowymi, takimi jak:
+> - **Zachowanie kontekstu i ciągłości:** Utrzymanie spójności stylistycznej, poprawnego tłumaczenia imion, nazw własnych i pojęć technicznych w obrębie całej książki przy ograniczonym oknie kontekstowym modelu.
+> - **Złożoność struktury PDF:** Ekstrakcja tekstu z formatu PDF z zachowaniem właściwej kolejności akapitów, nagłówków oraz przypisów bez zakłóceń wynikających z podziału stron czy układu kolumnowego.
+> - **Subtelności językowe:** Oddanie niuansów, tonu, idiomów oraz intencji autora, z czym automatyczne modele LLM (zwłaszcza mniejsze modele uruchamiane lokalnie) radzą sobie ze zmiennym szczęściem.
+> 
+> Dalszy rozwój projektu ma na celu sukcesywne ulepszanie algorytmów przetwarzania, zarządzania kontekstem oraz jakości generowanych tłumaczeń.
+
+
 > [!WARNING]
 > **Ostrzeżenie dotyczące tłumaczenia i ograniczeń modeli:**
 > - **Układ i formatowanie:** Precyzyjne zachowanie struktury i formatowania dokumentu PDF jest trudnym zadaniem. Projekt przetwarza i tłumaczy sam tekst – grafiki, niestandardowy układ oraz zaawansowane formatowanie z oryginalnego pliku PDF nie są odtwarzane.
