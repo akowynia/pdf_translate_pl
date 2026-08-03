@@ -5,6 +5,48 @@ class save_pdf:
     def __init__(self) -> None:
         pass
 
+    def get_unicode_font(self):
+        """
+        Dynamically finds and loads a system TrueType/OpenType font that supports Unicode (and Polish characters).
+        """
+        import platform
+        import os
+
+        system = platform.system()
+        candidates = []
+
+        if system == "Darwin":  # macOS
+            candidates = [
+                "/System/Library/Fonts/Supplemental/Arial.ttf",
+                "/System/Library/Fonts/Helvetica.ttc",
+                "/System/Library/Fonts/Supplemental/Times New Roman.ttf",
+                "/Library/Fonts/Arial.ttf",
+            ]
+        elif system == "Windows":
+            windir = os.environ.get("WINDIR", "C:\\Windows")
+            candidates = [
+                os.path.join(windir, "Fonts", "arial.ttf"),
+                os.path.join(windir, "Fonts", "times.ttf"),
+                os.path.join(windir, "Fonts", "calibri.ttf"),
+            ]
+        else:  # Linux / Unix
+            candidates = [
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+                "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+                "/usr/share/fonts/TTF/DejaVuSans.ttf",
+            ]
+
+        for path in candidates:
+            if os.path.exists(path):
+                try:
+                    return fitz.Font(fontfile=path)
+                except Exception:
+                    continue
+
+        return fitz.Font("helv")
+
+
     def create_pdf(self, output_path, pages):
         """
         Creates a PDF document with the given pages and saves it to the specified output path.
@@ -18,14 +60,14 @@ class save_pdf:
             import pymupdf_fonts
             font = fitz.Font("figo")
         except Exception:
-            font = fitz.Font("helv")
+            font = self.get_unicode_font()
 
         for page_book in pages:
             page = doc.new_page()
             lines = self.split_text_into_lines(page_book, max_line_length=70)
-            fontname = page.insert_font(fontname="F0", fontbuffer=font.buffer)
+            fontname = page.insert_font(fontname="F_PR_UNICODE", fontbuffer=font.buffer)
             for i, line in enumerate(lines):
-                page.insert_text((72, 20 + i * 14), line, fontsize=12, fontname="F0")
+                page.insert_text((72, 20 + i * 14), line, fontsize=12, fontname="F_PR_UNICODE")
         doc.save(output_path)
         doc.close()
 
@@ -46,7 +88,7 @@ class save_pdf:
             import pymupdf_fonts
             font = fitz.Font("figo")
         except Exception:
-            font = fitz.Font("helv")
+            font = self.get_unicode_font()
 
         for page_idx, page in enumerate(doc):
             if page_idx >= len(translated_pages_blocks):
@@ -65,8 +107,8 @@ class save_pdf:
             # Apply redactions to clear original text area
             page.apply_redactions()
 
-            page.insert_font(fontname="F0", fontbuffer=font.buffer)
-            font_alias = "F0"
+            page.insert_font(fontname="F_PR_UNICODE", fontbuffer=font.buffer)
+            font_alias = "F_PR_UNICODE"
 
             # Step 2: Insert translated text into bounding boxes with font auto-fit
             for block in blocks:
